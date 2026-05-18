@@ -47,6 +47,8 @@ if [ -z "${PYTHON_BIN}" ]; then
     fi
     bash "${MINICONDA_INSTALLER}" -b -p "${MINICONDA_DIR}"
   fi
+  "${MINICONDA_DIR}/bin/conda" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main || true
+  "${MINICONDA_DIR}/bin/conda" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r || true
   "${MINICONDA_DIR}/bin/conda" create -y -p "${VENV_DIR}" python=3.10 pip
   # shellcheck source=/dev/null
   source "${MINICONDA_DIR}/bin/activate" "${VENV_DIR}"
