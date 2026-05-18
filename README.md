@@ -74,10 +74,11 @@ cd /home
 git clone https://github.com/venkatpramod2005/inference-jl-2.git
 cd inference-jl-2
 bash setup.sh
-source .venv/bin/activate
 ```
 
 If your instance persists files under `/root`, clone there instead. The main scripts resolve paths relative to the repository root.
+
+The setup script creates `.venv/`. On JarvisLabs this may be a conda-prefix environment, so the helper scripts call binaries directly from `.venv/bin/`.
 
 ## Training Process
 

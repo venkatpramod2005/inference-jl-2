@@ -7,7 +7,6 @@ cd /home
 git clone https://github.com/venkatpramod2005/inference-jl-2.git
 cd inference-jl-2
 bash setup.sh
-source .venv/bin/activate
 ```
 
 ## 2. Train
