@@ -144,11 +144,23 @@ Run locally or on JarvisLabs:
 streamlit run app.py --server.port 7860 --server.address 0.0.0.0
 ```
 
-Background helper:
+JarvisLabs default notebook endpoints usually expose port `6006` unless custom HTTP ports were configured. For the provided endpoint, use:
+
+```bash
+streamlit run app.py --server.port 6006 --server.address 0.0.0.0
+```
+
+Background helper for the JarvisLabs endpoint:
 
 ```bash
 bash scripts/start_streamlit.sh
 tail -f outputs/streamlit.log
+```
+
+To use custom port `7860` instead:
+
+```bash
+STREAMLIT_PORT=7860 bash scripts/start_streamlit.sh
 ```
 
 Stop:
@@ -205,4 +217,3 @@ huggingface-cli login
 - Add durable multi-turn memory
 - Improve the UI with prompt presets and export
 - Export a merged model or GGUF for alternate serving stacks
-
