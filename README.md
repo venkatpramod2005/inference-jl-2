@@ -1,10 +1,10 @@
 # Qwen2.5-7B Chatbot Fine-Tuning using Unsloth
 
-This project fine-tunes `Qwen/Qwen2.5-7B-Instruct` on the Databricks Dolly 15K instruction dataset with Unsloth, 4-bit quantization, and LoRA/QLoRA. It also includes a Streamlit chatbot UI for deployment on a JarvisLabs L4 GPU endpoint.
+This project fine-tunes `Qwen/Qwen2.5-7B-Instruct` on the Databricks Dolly 15K instruction dataset with Unsloth, 4-bit quantization, and LoRA/QLoRA. It includes both flat assignment entrypoints (`train.py`, `inference.py`, `app.py`) and module folders for deeper experiments.
 
 ## Project Objective
 
-Build an instruction-following chatbot by loading Qwen2.5-7B in 4-bit precision, fine-tuning lightweight LoRA adapters on Dolly 15K, and serving the trained adapter through a web chat interface.
+Build an instruction-following chatbot by loading Qwen2.5-7B in 4-bit precision, training lightweight LoRA adapters on Dolly 15K, and serving the trained adapter through a Streamlit web chat interface on JarvisLabs.
 
 ## Technologies Used
 
@@ -12,27 +12,9 @@ Build an instruction-following chatbot by loading Qwen2.5-7B in 4-bit precision,
 - Unsloth
 - QLoRA and LoRA
 - Hugging Face Transformers, Datasets, PEFT, TRL
-- BitsAndBytes 4-bit quantization
+- BitsAndBytes
 - Streamlit
 - JarvisLabs L4 GPU
-
-## Project Structure
-
-```text
-inference-jl-2/
-├── train.py
-├── inference.py
-├── app.py
-├── requirements.txt
-├── setup.sh
-├── README.md
-├── models/
-├── outputs/
-├── screenshots/
-└── scripts/
-    ├── start_streamlit.sh
-    └── stop_streamlit.sh
-```
 
 ## Model Used
 
@@ -42,7 +24,7 @@ inference-jl-2/
 
 [Databricks Dolly 15K](https://huggingface.co/datasets/databricks/databricks-dolly-15k)
 
-The training script converts each row into this instruction format:
+Rows are formatted as:
 
 ```text
 ### Instruction:
@@ -55,11 +37,37 @@ The training script converts each row into this instruction format:
 {response}
 ```
 
-The context block is omitted when the dataset row has no context.
+The context block is omitted when the row has no context.
+
+## Project Structure
+
+```text
+inference-jl-2/
+├── train.py
+├── inference.py
+├── app.py
+├── requirements.txt
+├── setup.sh
+├── README.md
+├── DEPLOYMENT_GUIDE.md
+├── models/
+├── outputs/
+├── screenshots/
+├── scripts/
+│   ├── start_streamlit.sh
+│   └── stop_streamlit.sh
+├── train/
+│   ├── dataset_utils.py
+│   └── finetune.py
+├── inference/
+│   └── infer.py
+└── chatbot/
+    └── app.py
+```
 
 ## Setup on JarvisLabs
 
-Create or open a JarvisLabs L4 GPU instance, then clone this repository under a persistent home directory:
+Create or open a JarvisLabs L4 GPU instance, then clone this repository:
 
 ```bash
 cd /home
@@ -69,59 +77,54 @@ bash setup.sh
 source .venv/bin/activate
 ```
 
-If your instance uses `/root` as the persistent home, clone there instead. The code resolves paths relative to the repository, so it does not require a hardcoded `/home/user` directory.
+If your instance persists files under `/root`, clone there instead. The main scripts resolve paths relative to the repository root.
 
 ## Training Process
 
-Run a smoke test first:
+Smoke test:
 
 ```bash
 python train.py --max_samples 16 --max_steps 1
 ```
 
-Run a quick QLoRA training pass:
+Quick QLoRA run:
 
 ```bash
 python train.py --max_steps 60
 ```
 
-Run a fuller one-epoch training pass:
+Fuller one-epoch run:
 
 ```bash
 python train.py --max_steps -1 --num_train_epochs 1
 ```
 
-Training uses:
+Optimization techniques:
 
-- 4-bit model loading with Unsloth
+- 4-bit quantization
 - LoRA rank `16`
-- LoRA alpha `16`
-- Target modules: `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj`
-- Gradient checkpointing with Unsloth
+- QLoRA training on quantized base weights
+- Unsloth memory-efficient loading
+- Gradient checkpointing
 - Mixed precision based on GPU support
 - `adamw_8bit` optimizer
 
-The trained adapter is saved to:
+Outputs:
 
 ```text
 models/lora_adapters/
-```
-
-Checkpoints are saved under:
-
-```text
 outputs/checkpoints/
 ```
 
 ## Inference
 
-After training, test the adapter:
+After training:
 
 ```bash
 python inference.py
 ```
 
-Or send a custom prompt:
+Custom prompt:
 
 ```bash
 python inference.py --prompt "Explain neural networks in simple words."
@@ -133,39 +136,39 @@ Default test prompts:
 - Explain neural networks.
 - Tell me a joke.
 
-## Streamlit Deployment
+## Streamlit Chatbot UI
 
-Start the chatbot on JarvisLabs:
+Run locally or on JarvisLabs:
 
 ```bash
 streamlit run app.py --server.port 7860 --server.address 0.0.0.0
 ```
 
-Or use the helper script:
+Background helper:
 
 ```bash
 bash scripts/start_streamlit.sh
 tail -f outputs/streamlit.log
 ```
 
-Stop the background server:
+Stop:
 
 ```bash
 bash scripts/stop_streamlit.sh
 ```
 
-Expected deployment endpoint:
+JarvisLabs endpoint:
 
 [https://ac5f144115441.notebooksn.jarvislabs.net](https://ac5f144115441.notebooksn.jarvislabs.net)
 
-If the endpoint does not load, confirm that JarvisLabs is exposing port `7860` for this instance and that Streamlit is bound to `0.0.0.0`.
+If the endpoint does not load, confirm that JarvisLabs exposes port `7860` and that Streamlit is bound to `0.0.0.0`.
 
 ## Screenshots
 
 Add final screenshots to `screenshots/`:
 
-- Training logs showing successful LoRA adapter save
-- Streamlit chatbot page
+- Training logs showing adapter save
+- Streamlit chatbot UI
 - Example chatbot response
 
 ## Troubleshooting
@@ -183,7 +186,7 @@ CUDA out of memory:
 python train.py --batch_size 1 --gradient_accumulation_steps 8 --max_seq_length 1024
 ```
 
-Missing adapter in the app:
+Missing adapter:
 
 ```bash
 python train.py --max_steps 60
@@ -198,8 +201,8 @@ huggingface-cli login
 ## Future Improvements
 
 - Train for more epochs and compare validation prompts
-- Add RAG over project documents
-- Add durable multi-turn conversation memory
-- Improve the UI with prompt presets and response export
-- Export a merged model or GGUF artifact for alternate serving stacks
+- Add RAG integration
+- Add durable multi-turn memory
+- Improve the UI with prompt presets and export
+- Export a merged model or GGUF for alternate serving stacks
 
